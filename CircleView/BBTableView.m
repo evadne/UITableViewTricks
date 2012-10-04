@@ -6,139 +6,299 @@
 //  Copyright (c) 2012 Integral Development Corporation. All rights reserved.
 //
 
+#import <objc/runtime.h>
 #import "BBTableView.h"
-#import <objc/objc-class.h>
+#import "BBTableViewInterceptor.h"
 
-#define HORIZONTAL_RADIUS_RATIO 0.8
-#define VERTICAL_RADIUS_RATIO 1.2
-#define CIRCLE_DIRECTION_RIGHT 0
+CGFloat BBTableViewLandscapeDistanceRatio = 1.2f;
+CGFloat BBTableViewPortraitDistanceRatio = 0.8f;
 
+@interface BBTableView () <UITableViewDelegate, UITableViewDataSource>
+@property (nonatomic, readonly, strong) BBTableViewInterceptor *dataSourceInterceptor;
 
+- (id<UITableViewDataSource>) superDataSource;
+- (BOOL) isMaskingCustomDataSourceHackery;
+- (void) beginMaskingCustomDataSourceHackery;
+- (void) endMaskingCustomDataSourceHackery;
+@property (nonatomic, readwrite, assign) NSUInteger dataSourceOverridingCount;
 
-@interface BBTableView()
-{
-    int mTotalCellsVisible;
-    id<UITableViewDataSource> _ourNewDelegate;
-}
--(NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section;
 @end
 
 @implementation BBTableView
+@synthesize distanceRatio = _distanceRatio;
+@synthesize extrusionDirection = _extrusionDirection;
+@synthesize dataSourceInterceptor = _dataSourceInterceptor;
+@synthesize dataSourceOverridingCount = _dataSourceOverridingCount;
 
+- (id) initWithFrame:(CGRect)frame style:(UITableViewStyle)style {
 
--(void)layoutSubviews
-{    
-    mTotalCellsVisible = self.frame.size.height / self.rowHeight;
-    [self resetContentOffsetIfNeeded];
-    [super layoutSubviews];
-    [self setupShapeFormationInVisibleCells];
+	self = [super initWithFrame:frame style:style];
+	if (!self)
+		return nil;
+	
+	[self commonInit];
+	
+	return self;
+
 }
 
--(void)switchMethod
-{
-    SEL dataCountSel = @selector(tableView:numberOfRowsInSection:);
-    Method theirMethod = class_getInstanceMethod([_ourNewDelegate class], dataCountSel);
+- (id) initWithCoder:(NSCoder *)aDecoder {
+
+	self = [super initWithCoder:aDecoder];
+	if (!self)
+		return nil;
+	
+	[self commonInit];
+	
+	return self;
+
+}
+
+- (void) commonInit {
+
+	_distanceRatio = BBTableViewLandscapeDistanceRatio;
+	_extrusionDirection = BBTableViewExtrusionRight;
+	
+	[self dataSourceInterceptor];
+
+}
+
+- (BBTableViewInterceptor *) dataSourceInterceptor {
+
+	if (!_dataSourceInterceptor) {
+	
+		_dataSourceInterceptor = [BBTableViewInterceptor new];
+		_dataSourceInterceptor.middleMan = self;
+	
+		[super setDataSource:(id<UITableViewDataSource>)_dataSourceInterceptor];
+	
+	}
+	
+	return _dataSourceInterceptor;
+
+}
+
+- (id<UITableViewDataSource>) superDataSource {
+
+	return [super dataSource];
+
+}
+
+- (id<UITableViewDataSource>) dataSource {
+
+	if ([self isMaskingCustomDataSourceHackery])
+		return self;
+	
+	return _dataSourceInterceptor.receiver;
+
+}
+
+- (BOOL) isMaskingCustomDataSourceHackery {
+
+	NSCParameterAssert([NSThread isMainThread]);
+	
+	return !!_dataSourceOverridingCount;
+
+}
+- (void) beginMaskingCustomDataSourceHackery {
+
+	NSCParameterAssert([NSThread isMainThread]);
+	
+	_dataSourceOverridingCount++;
+
+}
+- (void) endMaskingCustomDataSourceHackery {
+
+	NSCParameterAssert([NSThread isMainThread]);
+	NSCParameterAssert(_dataSourceOverridingCount);
+	
+	_dataSourceOverridingCount--;
+	
+}
+
+- (void) setDataSource:(id<UITableViewDataSource>)dataSource {
+
+	if (_dataSourceInterceptor.receiver != dataSource)
+		[super setDataSource:nil];
+	
+	_dataSourceInterceptor.receiver = dataSource;
+	
+	if ([super dataSource] != _dataSourceInterceptor)
+		[super setDataSource:(id<UITableViewDataSource>)_dataSourceInterceptor];
+	
+}
+
+- (void) setDistanceRatio:(CGFloat)distanceRatio {
+	
+	if (distanceRatio == _distanceRatio)
+		return;
+	
+	_distanceRatio = distanceRatio;
+	
+	[self setNeedsLayout];
+
+}
+
+- (void) setExtrusionDirection:(BBTableViewExtrusionDirection)extrusionDirection {
+
+	if (extrusionDirection == _extrusionDirection)
+		return;
+	
+	_extrusionDirection = extrusionDirection;
+	
+	[self setNeedsLayout];
+
+}
+
+- (void) layoutSubviews {
+	
+	NSCParameterAssert(![self.delegate respondsToSelector:@selector(tableView:heightForRowAtIndexPath:)]);
+	
+	NSUInteger mTotalCellsVisible = CGRectGetHeight(self.frame) / self.rowHeight;
+	
+	[self adjustContentOffsetWithOptions:@{
+		@"numberOfRows": @(mTotalCellsVisible)
+	}];
+	
+	[self beginMaskingCustomDataSourceHackery];
+	[super layoutSubviews];
+	[self endMaskingCustomDataSourceHackery];
+	
+	[self adjustVisibleCellsWithOptions:@{
+		@"numberOfRows": @(mTotalCellsVisible)
+	}];
+	
+}
+
+- (void) reloadData {
+
+	[self beginMaskingCustomDataSourceHackery];
+	[super reloadData];
+	[self endMaskingCustomDataSourceHackery];
+
+}
+
+- (void) adjustContentOffsetWithOptions:(NSDictionary *)options {
+
+	NSUInteger numberOfRows = [[options objectForKey:@"numberOfRows"] unsignedIntegerValue];
+	NSArray *indexPathsForVisibleRows = [self indexPathsForVisibleRows];
+	NSUInteger numberOfVisibleCellIndexPaths =[indexPathsForVisibleRows count];
+	
+	//	If we dont have enough content to generate scroll
+	if (numberOfRows > numberOfVisibleCellIndexPaths)
+		return;
+
+	//	check the top condition
+	//	check if the scroll view reached its top.. if so.. move it to center.. remember center is the start of the data repeating for 2nd time.
+		
+	CGFloat unitHeight = self.contentSize.height / 3.0f;
+	if (unitHeight) {
+	
+		[self setContentOffset:(CGPoint){
+			self.contentOffset.x,
+			fmodf(unitHeight + self.contentOffset.y, unitHeight)
+		}];
+	
+	}
+	
+}
+
+- (void) adjustVisibleCellsWithOptions:(NSDictionary *)options {
+
+	//	Iterate through all visible cells and lay them in a circular shape
+	
+	NSUInteger numberOfRows = [[options objectForKey:@"numberOfRows"] unsignedIntegerValue];
+	NSArray *visibleIndexPaths = [self indexPathsForVisibleRows];
+	NSUInteger numberOfVisibleCells = [visibleIndexPaths count];
+
+	CGFloat shift = ((int)self.contentOffset.y % (int)self.rowHeight);
+	CGFloat angleGap = M_PI / ( numberOfRows + 1);
+	CGFloat percentage_visible = shift / self.rowHeight;
+	CGFloat radius = CGRectGetHeight(self.frame) / 2.0f;
+	CGFloat xRadius = radius * 2.0f / 3.0f;
+  
+	for (NSUInteger index = 0; index < numberOfVisibleCells; index++) {
+		
+		UITableViewCell *cell = [self cellForRowAtIndexPath:[visibleIndexPaths objectAtIndex:index]];
+		CGRect cellFrame = cell.frame;
     
-    SEL ournewSel = @selector(tableview:numberOfRowsInSection:);	
-    Method ourMethod = class_getInstanceMethod([self class], ournewSel);
+		//	We can find the x Point by finding the Angle from the Ellipse Equation of finding y
+		//	i.e. Y= vertical_radius * sin(t )
+		//	t = asin(Y/vertical_radius) or asin = sin inverse
+		
+		CGFloat angle = (index + 1) * angleGap - (percentage_visible * angleGap);
+		switch (_extrusionDirection) {
+			case BBTableViewExtrusionLeft: {
+				angle += M_PI_2;
+				break;
+			}
+			case BBTableViewExtrusionRight: {
+				angle -= M_PI_2;
+				break;
+			}
+			default: {
+				NSCParameterAssert(NO);
+				break;
+			}
+		}
+				
+		//	Apply Angle in X point of Ellipse equation
+		//	i.e. X = horizontal_radius * cos( t )
+		//	here horizontal_radius would be some percentage off the vertical radius. percentage is defined by BBTableViewLandscapeDistanceRatio; 1.0f is equal to circle
+		
+		float x = (floorf(xRadius * _distanceRatio)) * cosf(angle);
     
-    method_exchangeImplementations(theirMethod, ourMethod);     
-}
-
-
-- (void)resetContentOffsetIfNeeded
-{
-    NSArray *indexpaths = [self indexPathsForVisibleRows];
-    int totalVisibleCells =[indexpaths count];
-    if( mTotalCellsVisible > totalVisibleCells )
-    {
-        //we dont have enough content to generate scroll
-        return;
-    }
-    CGPoint contentOffset  = self.contentOffset;
+		//	Assuming, you have laid your tableview so that the entire frame is visible
+		//	TO DISPLAY RIGHT: then to display the circle towards right move the cellX (var x here) by half the width towards the right
+		//	TO DISPLAY LEFT : move the cellX by quarter the radius
+		//	FEEL FREE to play with x to allign the circle as per your needs
+				
+		switch (_extrusionDirection) {
+			case BBTableViewExtrusionLeft: {
+				x = x + self.frame.size.width/2;// we have to shift the center of the circle toward the right
+				break;
+			}
+			case BBTableViewExtrusionRight: {
+				x = x - self.frame.size.width/2;//HORIZONTAL_TRANSLATION;
+				break;
+			}
+			default: {
+				NSCParameterAssert(NO);
+				break;
+			}
+		}
     
-    //check the top condition
-    //check if the scroll view reached its top.. if so.. move it to center.. remember center is the start of the data repeating for 2nd time.
-    if( contentOffset.y<=0.0)
-    {
-        contentOffset.y = self.contentSize.height/3.0f;
-    }
-    else if( contentOffset.y >= ( self.contentSize.height - self.bounds.size.height) )//scrollview content offset reached bottom minus the height of the tableview
-    {
-        //this scenario is same as the data repeating for 2nd time minus the height of the table view
-        contentOffset.y = self.contentSize.height/3.0f- self.bounds.size.height;
-    }
-    [self setContentOffset: contentOffset];
+		if (isfinite(x) && !isnan(x)) {
+			cellFrame.origin.x = x;
+			cell.frame = cellFrame;
+		}
+	
+	}
+	
 }
 
+- (NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
 
-//The heart of this app.
-//this function iterates through all visible cells and lay them in a circular shape
-- (void)setupShapeFormationInVisibleCells
-{
-    NSArray *indexpaths = [self indexPathsForVisibleRows];
-    int totalVisibleCells =[indexpaths count];
+	id<UITableViewDataSource> dataSource = _dataSourceInterceptor.receiver;
+	NSInteger answer = [dataSource tableView:tableView numberOfRowsInSection:section];
+	
+	return answer * 3;
 
-    float shift = ((int)self.contentOffset.y % (int)self.rowHeight);  
-    float angle_gap = M_PI/(mTotalCellsVisible+1); // find the angle difference after dividing the table into totalVisibleCells +1
-    float percentage_visible = shift/self.rowHeight;// if the cell is visible only half.. that the content offset is not multiples of row height.. then find by how much percentage the first cell is visible.
-
-    float radius = self.frame.size.height/2.0f;
-    float xRadius = radius*2/3;
-    
-    for( NSUInteger index =0; index < totalVisibleCells; index++ )
-    {
-        UITableViewCell *cell = (UITableViewCell*)[self cellForRowAtIndexPath:[ indexpaths objectAtIndex:index]];
-        CGRect frame = cell.frame;
-       
-        
-        //We can find the x Point by finding the Angle from the Ellipse Equation of finding y
-        //i.e. Y= vertical_radius * sin(t )
-        // t= asin(Y / vertical_radius) or asin = sin inverse
-        float angle = (index +1)*angle_gap -( ( percentage_visible) * angle_gap);
-        
-        if( CIRCLE_DIRECTION_RIGHT )
-        {
-            angle =  angle + M_PI_2;
-        }
-        else {
-            angle -= M_PI_2;
-
-        }
-      //  NSLog(@"Angle %f Row %d Radius %f Y: %f", angle * 180 / M_PI, index, radius, frame.origin.y);
-        
-        //Apply Angle in X point of Ellipse equation
-        //i.e. X = horizontal_radius * cos( t )
-        //here horizontal_radius would be some percentage off the vertical radius. percentage is defined by HORIZONTAL_RADIUS_RATIO
-        //HORIZONTAL_RADIUS_RATIO of 1 is equal to circle
-        float x = (floorf(xRadius*[self getDistanceRatio])) * cosf(angle );
-        
-        //Assuming, you have laid your tableview so that the entire frame is visible
-        //TO DISPLAY RIGHT: then to display the circle towards right move the cellX (var x here) by half the width towards the right
-        //TO DISPLAY LEFT : move the cellX by quarter the radius 
-        //FEEL FREE to play with x to allign the circle as per your needs
-        if( CIRCLE_DIRECTION_RIGHT )
-        {
-            //
-            x = x + self.frame.size.width/2;// we have to shift the center of the circle toward the right
-        }
-        else {
-           // x = x - self.frame.size.width/2;//HORIZONTAL_TRANSLATION;  
-        }
-        
-        frame.origin.x = x ;
-        if( !isnan(x))
-        {
-            cell.frame = frame;
-        }
-    }
 }
 
+- (UITableViewCell *) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 
-- (float)getDistanceRatio
-{
-    return (UIDeviceOrientationIsLandscape([[UIDevice currentDevice] orientation]) ? VERTICAL_RADIUS_RATIO : HORIZONTAL_RADIUS_RATIO);
+	id<UITableViewDataSource> dataSource = _dataSourceInterceptor.receiver;
+	
+	NSUInteger section = indexPath.section;
+	NSUInteger numberOfRows = [dataSource tableView:tableView numberOfRowsInSection:section];
+	NSUInteger row = indexPath.row % numberOfRows;
+
+	NSIndexPath *fitIndexPath = [NSIndexPath indexPathForRow:row inSection:section];
+	UITableViewCell *cell = [dataSource tableView:tableView cellForRowAtIndexPath:fitIndexPath];
+	
+	return cell;
+
 }
-
 
 @end
