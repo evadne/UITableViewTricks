@@ -66,10 +66,11 @@
     //[self setupShapeFormationInVisibleCells];
 }
 
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
-{
-    return [mDataSource count] * CONTENT_SIZE_MULTIPLY_FACTOR;
-;
+- (NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+	
+	return [mDataSource count] * 3;
+#warning TBD: Refactor this into the table view
+	
 }
 
 // Row display. Implementers should *always* try to reuse cells by setting each cell's reuseIdentifier and querying for available reusable cells with dequeueReusableCellWithIdentifier:
@@ -130,6 +131,22 @@
            // [self setupShapeFormationInVisibleCells];
         });
     });
+}
+
+- (void) willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
+
+	[super willAnimateRotationToInterfaceOrientation:toInterfaceOrientation duration:duration];
+	
+	if (UIInterfaceOrientationIsPortrait(toInterfaceOrientation)) {
+	
+		mTableView.distanceRatio = BBTableViewLandscapeDistanceRatio;
+		
+	} else {
+	
+		mTableView.distanceRatio = BBTableViewPortraitDistanceRatio;
+	
+	}
+
 }
 
 @end

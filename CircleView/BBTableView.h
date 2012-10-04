@@ -7,9 +7,18 @@
 //
 
 #import <UIKit/UIKit.h>
-#define CONTENT_SIZE_MULTIPLY_FACTOR 3
+
+enum {
+	BBTableViewExtrusionRight = 1,
+	BBTableViewExtrusionLeft = 0
+}; typedef NSUInteger BBTableViewExtrusionDirection;
 
 @interface BBTableView : UITableView
 
-- (float)getDistanceRatio;
+@property (nonatomic, readwrite, assign) CGFloat distanceRatio;
+@property (nonatomic, readwrite, assign) BBTableViewExtrusionDirection extrusionDirection;
+
 @end
+
+extern CGFloat BBTableViewLandscapeDistanceRatio;
+extern CGFloat BBTableViewPortraitDistanceRatio;
