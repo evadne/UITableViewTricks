@@ -24,9 +24,7 @@
 #import "BBTableView.h"
 
 @interface BBViewController : UIViewController<UITableViewDataSource,UIScrollViewDelegate>
-{
-    IBOutlet BBTableView *mTableView;
-    NSMutableArray *mDataSource;
-}
+
+@property (nonatomic, readonly, weak) IBOutlet BBTableView *tableView;
 
 @end

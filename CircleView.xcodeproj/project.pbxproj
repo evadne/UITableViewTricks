@@ -35,6 +35,7 @@
 		FA8F3A2C158457E300045C98 /* 5.png in Resources */ = {isa = PBXBuildFile; fileRef = FA8F3A25158457E300045C98 /* 5.png */; };
 		FA8F3A2E158457E300045C98 /* 6.png in Resources */ = {isa = PBXBuildFile; fileRef = FA8F3A27158457E300045C98 /* 6.png */; };
 		FA8F3A2F158457E300045C98 /* 7.png in Resources */ = {isa = PBXBuildFile; fileRef = FA8F3A28158457E300045C98 /* 7.png */; };
+		FFC040E3161D3A0700EBF349 /* BBTableViewInterceptor.m in Sources */ = {isa = PBXBuildFile; fileRef = FFC040E2161D3A0700EBF349 /* BBTableViewInterceptor.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -73,6 +74,8 @@
 		FA8F3A25158457E300045C98 /* 5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 5.png; sourceTree = "<group>"; };
 		FA8F3A27158457E300045C98 /* 6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 6.png; sourceTree = "<group>"; };
 		FA8F3A28158457E300045C98 /* 7.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 7.png; sourceTree = "<group>"; };
+		FFC040E1161D3A0700EBF349 /* BBTableViewInterceptor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BBTableViewInterceptor.h; path = CircleView/BBTableViewInterceptor.h; sourceTree = SOURCE_ROOT; };
+		FFC040E2161D3A0700EBF349 /* BBTableViewInterceptor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BBTableViewInterceptor.m; path = CircleView/BBTableViewInterceptor.m; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,8 +96,10 @@
 		987021D3158271F10015FB5E = {
 			isa = PBXGroup;
 			children = (
-				987022021582ADAB0015FB5E /* QuartzCore.framework */,
 				987021E8158271F10015FB5E /* CircleView */,
+				FAA7E2E1160067710017FC13 /* BBTableView */,
+				FA70FA0515842CFB0079476E /* Resources */,
+				987021E9158271F10015FB5E /* Supporting Files */,
 				987021E1158271F10015FB5E /* Frameworks */,
 				987021DF158271F10015FB5E /* Products */,
 			);
@@ -111,9 +116,10 @@
 		987021E1158271F10015FB5E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				987021E2158271F10015FB5E /* UIKit.framework */,
-				987021E4158271F10015FB5E /* Foundation.framework */,
 				987021E6158271F10015FB5E /* CoreGraphics.framework */,
+				987021E4158271F10015FB5E /* Foundation.framework */,
+				987022021582ADAB0015FB5E /* QuartzCore.framework */,
+				987021E2158271F10015FB5E /* UIKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -121,13 +127,11 @@
 		987021E8158271F10015FB5E /* CircleView */ = {
 			isa = PBXGroup;
 			children = (
-				FAA7E2E1160067710017FC13 /* Infinite TableView */,
 				987021F1158271F10015FB5E /* BBAppDelegate.h */,
 				987021F2158271F10015FB5E /* BBAppDelegate.m */,
 				987021F4158271F10015FB5E /* BBViewController.h */,
 				987021F5158271F10015FB5E /* BBViewController.m */,
 				987021F7158271F10015FB5E /* BBViewController.xib */,
-				987021E9158271F10015FB5E /* Supporting Files */,
 				987021FF158279830015FB5E /* BBCell.h */,
 				98702200158279830015FB5E /* BBCell.m */,
 			);
@@ -137,7 +141,6 @@
 		987021E9158271F10015FB5E /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				FA70FA0515842CFB0079476E /* images */,
 				987021EA158271F10015FB5E /* CircleView-Info.plist */,
 				987021EB158271F10015FB5E /* InfoPlist.strings */,
 				987021EE158271F10015FB5E /* main.m */,
@@ -145,9 +148,10 @@
 				FA70FA0B158431F60079476E /* data.plist */,
 			);
 			name = "Supporting Files";
+			path = CircleView;
 			sourceTree = "<group>";
 		};
-		FA70FA0515842CFB0079476E /* images */ = {
+		FA70FA0515842CFB0079476E /* Resources */ = {
 			isa = PBXGroup;
 			children = (
 				FA8F3A22158457E300045C98 /* 1.png */,
@@ -167,17 +171,20 @@
 				FA8935A715845CAC00C2B697 /* 15.png */,
 				FA8935A815845CAC00C2B697 /* 16.png */,
 			);
-			path = images;
+			name = Resources;
+			path = CircleView/images;
 			sourceTree = "<group>";
 		};
-		FAA7E2E1160067710017FC13 /* Infinite TableView */ = {
+		FAA7E2E1160067710017FC13 /* BBTableView */ = {
 			isa = PBXGroup;
 			children = (
 				FA1E55A4160068290082E025 /* BBTableView.h */,
 				FA1E55A5160068290082E025 /* BBTableView.m */,
+				FFC040E1161D3A0700EBF349 /* BBTableViewInterceptor.h */,
+				FFC040E2161D3A0700EBF349 /* BBTableViewInterceptor.m */,
 			);
-			name = "Infinite TableView";
-			path = "Infinite ScrollView";
+			name = BBTableView;
+			path = "CircleView/Infinite ScrollView";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -266,6 +273,7 @@
 				987021F6158271F10015FB5E /* BBViewController.m in Sources */,
 				98702201158279830015FB5E /* BBCell.m in Sources */,
 				FA1E55A6160068290082E025 /* BBTableView.m in Sources */,
+				FFC040E3161D3A0700EBF349 /* BBTableViewInterceptor.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
